@@ -1,98 +1,117 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# **MyFuel Transaction Processing Service**
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+This project is a NestJS implementation of the **MyFuel Transaction Processing Service**, developed as part of a technical assessment. It exposes a secure and reliable webhook endpoint to process fuel card transactions from petrol stations in real time.  
+The implementation is based on a detailed [**System Design Document**](./MyFuelTransactionProcessingService.pdf), which includes the system architecture, ERD, and data flow diagrams.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## **✨ Features**
 
-## Description
+* **Idempotent Webhook Endpoint**: Prevents duplicate transaction processing using an Idempotency-Key.  
+* **Atomic Transactions**: Ensures data integrity by processing all database updates (balance deduction, limit counter updates) in a single, atomic transaction.  
+* **Timezone-Aware Limits**: Correctly calculates and resets daily/monthly card spending limits based on each organization's specific timezone.  
+* **Secure by Design**: Validates incoming requests using an HMAC-SHA256 signature to ensure authenticity and prevent tampering.  
+* **Automated API Documentation**: Interactive API documentation is available via Swagger (OpenAPI) at the /api-docs endpoint.  
+* **Unit Tested**: Core business logic is covered by unit tests to ensure reliability and prevent regressions.  
+* **Configuration Driven**: All sensitive information and environment-specific settings are managed via environment variables.
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## **Prerequisites**
 
-## Project setup
+Before you begin, ensure you have the following installed on your local machine:
 
-```bash
-$ npm install
-```
+* [Node.js](https://nodejs.org/) (v18 or later recommended)  
+* [npm](https://www.npmjs.com/) or [Yarn](https://yarnpkg.com/)  
+* [PostgreSQL](https://www.postgresql.org/) (v14 or later recommended)  
+* A database client like [pgAdmin](https://www.pgadmin.org/) or [DBeaver](https://dbeaver.io/)
 
-## Compile and run the project
+## **🚀 Getting Started**
 
-```bash
-# development
-$ npm run start
+Follow these steps to get the project up and running locally.
 
-# watch mode
-$ npm run start:dev
+### **1\. Clone the Repository**
 
-# production mode
-$ npm run start:prod
-```
+git clone \[https://github.com/YOUR\_USERNAME/YOUR\_REPOSITORY.git\](https://github.com/YOUR\_USERNAME/YOUR\_REPOSITORY.git)  
+cd YOUR\_REPOSITORY
 
-## Run tests
+### **2\. Install Dependencies**
 
-```bash
-# unit tests
-$ npm run test
+npm install
 
-# e2e tests
-$ npm run test:e2e
+### **3\. Set Up the Database**
 
-# test coverage
-$ npm run test:cov
-```
+You must create the PostgreSQL database manually before starting the application.  
+\-- Connect to your PostgreSQL instance and run:  
+CREATE DATABASE myfuel\_db;
 
-## Deployment
+### **4\. Configure Environment Variables**
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+Create a .env file in the root of the project by copying the example file.  
+cp .env.example .env
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+Now, open the .env file and fill in your specific database credentials and a secure webhook secret.  
+\# PostgreSQL Configuration  
+DB\_HOST=localhost  
+DB\_PORT=5432  
+DB\_USERNAME=postgres  
+DB\_PASSWORD=your\_secret\_db\_password  
+DB\_DATABASE=myfuel\_db
 
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
+\# Webhook Security  
+WEBHOOK\_SECRET\_KEY=your-super-secret-key-shared-with-petrol-stations
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+## **🏃‍♂️ Running the Application**
 
-## Resources
+### **Development Mode**
 
-Check out a few resources that may come in handy when working with NestJS:
+To run the application in watch mode (restarts on file changes):  
+npm run start:dev
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+The application will be available at http://localhost:3000.
 
-## Support
+### **Production Mode**
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+To build and run the application for production:  
+npm run build  
+npm run start:prod
 
-## Stay in touch
+## **🧪 Running Tests**
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+To run the unit tests:  
+npm run test
 
-## License
+## **📖 API Documentation**
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+Once the application is running, you can access the interactive Swagger UI documentation at:  
+[**http://localhost:3000/api-docs**](https://www.google.com/search?q=http://localhost:3000/api-docs)  
+From this page, you can view detailed information about the webhook endpoint and even send test requests.
+
+### **Example API Request (cURL)**
+
+Here is an example of how to call the webhook endpoint using cURL.  
+**Note:** You must generate a valid signature for each request.  
+\# 1\. Set variables  
+TIMESTAMP=$(date \+%s%3N)  
+BODY='{"cardNumber":"4111222233334444","amount":47.50,"txnAtUtc":"2025-09-05T10:00:00Z","stationId":"ST-92810"}'  
+SECRET="your-super-secret-key-shared-with-petrol-stations"
+
+\# 2\. Generate HMAC-SHA256 signature  
+PAYLOAD="${TIMESTAMP}.${BODY}"  
+SIGNATURE=$(echo \-n "$PAYLOAD" | openssl dgst \-sha256 \-hmac "$SECRET" \-binary | xxd \-p \-c 256\)
+
+\# 3\. Make the request  
+curl \-X POST http://localhost:3000/v1/transactions/webhook/fuel-transactions \\  
+\-H "Content-Type: application/json" \\  
+\-H "Idempotency-Key: $(uuidgen)" \\  
+\-H "X-Signature-Timestamp: $TIMESTAMP" \\  
+\-H "X-Signature: $SIGNATURE" \\  
+\-d "$BODY"
+
+## **🏗️ Project Structure**
+
+The project follows a standard NestJS modular architecture:
+
+* src/  
+  * main.ts: The application entry point.  
+  * app.module.ts: The root module of the application.  
+  * transactions/: Contains all logic for processing transactions (controller, service, entities).  
+  * cards/: Contains the Card entity and its related logic.  
+  * organizations/: Contains entities for Organization, OrgBalance, etc.  
+  * shared/: Contains reusable components like guards.
