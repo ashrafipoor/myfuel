@@ -10,5 +10,6 @@ import { BalanceLedger } from './entities/balance-ledger.entity';
   imports: [TypeOrmModule.forFeature([Organization, OrgBalance, BalanceLedger])],
   controllers: [OrganizationsController],
   providers: [OrganizationsService],
+  exports: [TypeOrmModule],
 })
 export class OrganizationsModule {}

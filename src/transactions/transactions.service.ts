@@ -16,7 +16,6 @@ import { LimitCounter, PeriodType } from './entities/limit-counter.entity';
 import { OrgBalance } from '../organizations/entities/org-balance.entity';
 import { BalanceLedger } from '../organizations/entities/balance-ledger.entity';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
-import { format, toZonedTime } from 'date-fns-tz';
 
 @Injectable()
 export class TransactionsService {
@@ -33,6 +32,7 @@ export class TransactionsService {
     createTransactionDto: CreateTransactionDto,
     idempotencyKey: string,
   ) {
+    const { format, toZonedTime } = await import('date-fns-tz');
     // Step 0: Idempotency Check
     const existingTransaction = await this.transactionsRepository.findOne({
       where: { idempotencyKey },
