@@ -1,0 +1,52 @@
+# This is the name of the GitHub Actions workflow.
+# It will be displayed on the "Actions" tab of your GitHub repository.
+name: CI/CD Pipeline
+
+# --- Trigger Conditions ---
+# This workflow will automatically run on a 'push' event to the 'main' or 'develop' branches.
+on:
+  push:
+    branches: [ "main", "develop" ]
+  pull_request:
+    branches: [ "main", "develop" ]
+
+# --- Jobs ---
+# A workflow is made up of one or more jobs that can run sequentially or in parallel.
+jobs:
+  # This job is named "build_and_test"
+  build_and_test:
+    # The type of machine to run the job on. We'll use the latest version of Ubuntu.
+    runs-on: ubuntu-latest
+
+    # A sequence of tasks that will be executed as part of the job.
+    steps:
+      # Step 1: Check out the repository code
+      # This action checks-out your repository under $GITHUB_WORKSPACE, so your job can access it.
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Step 2: Set up the Node.js environment
+      # This action sets up a Node.js environment for use in actions.
+      - name: Set up Node.js v18
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm' # This will cache npm dependencies for faster builds
+
+      # Step 3: Install dependencies
+      # 'npm ci' is recommended for CI environments as it's faster and more reliable than 'npm install'.
+      - name: Install dependencies
+        run: npm ci
+
+      # Step 4: Run the linter to check for code style issues
+      - name: Run linter
+        run: npm run lint
+
+      # Step 5: Run the unit tests
+      - name: Run unit tests
+        run: npm run test
+
+      # Step 6: Build the application for production
+      # This step ensures the project builds successfully without TypeScript errors.
+      - name: Build application
+        run: npm run build
