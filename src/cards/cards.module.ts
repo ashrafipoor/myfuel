@@ -9,4 +9,4 @@ import { Card } from './entities/card.entity';
   providers: [CardsService],
   exports: [TypeOrmModule],
 })
-export class CardsModule { }
+export class CardsModule {}

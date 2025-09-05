@@ -28,8 +28,8 @@ Follow these steps to get the project up and running locally.
 
 ### **1\. Clone the Repository**
 
-git clone \[https://github.com/YOUR\_USERNAME/YOUR\_REPOSITORY.git\](https://github.com/YOUR\_USERNAME/YOUR\_REPOSITORY.git)  
-cd YOUR\_REPOSITORY
+git clone \[https://github.com/ashrafipoor/myfuel.git\](https://github.com/ashrafipoor/myfuel.git)  
+cd myfuel
 
 ### **2\. Install Dependencies**
 

@@ -11,9 +11,9 @@ import { OrganizationsModule } from 'src/organizations/organizations.module';
   imports: [
     TypeOrmModule.forFeature([LimitCounter, Transaction]),
     CardsModule,
-    OrganizationsModule
+    OrganizationsModule,
   ],
   controllers: [TransactionsController],
   providers: [TransactionsService],
 })
-export class TransactionsModule { }
+export class TransactionsModule {}

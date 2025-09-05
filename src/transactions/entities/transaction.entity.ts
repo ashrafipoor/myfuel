@@ -23,7 +23,6 @@ export enum RejectionReason {
 
 @Entity({ name: 'transactions' })
 export class Transaction {
-
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -49,7 +48,7 @@ export class Transaction {
 
   @Column({ unique: true })
   idempotencyKey: string;
-  
+
   @Column({ type: 'jsonb', nullable: true })
   responseBody: any;
 

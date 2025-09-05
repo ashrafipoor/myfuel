@@ -16,6 +16,11 @@ import { LimitCounter, PeriodType } from './entities/limit-counter.entity';
 import { OrgBalance } from '../organizations/entities/org-balance.entity';
 import { BalanceLedger } from '../organizations/entities/balance-ledger.entity';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
+import { format, toZonedTime } from 'date-fns-tz';
+import {
+  ApprovedTransactionResponse,
+  TransactionResponse,
+} from './dto/transaction-response.dto';
 
 @Injectable()
 export class TransactionsService {
@@ -24,22 +29,19 @@ export class TransactionsService {
     private readonly cardsRepository: Repository<Card>,
     @InjectRepository(Transaction)
     private readonly transactionsRepository: Repository<Transaction>,
-    // ... other repositories are implicitly here from your code
     private readonly dataSource: DataSource,
   ) {}
 
   async processTransaction(
     createTransactionDto: CreateTransactionDto,
     idempotencyKey: string,
-  ) {
-    const { format, toZonedTime } = await import('date-fns-tz');
+  ): Promise<TransactionResponse> {
     // Step 0: Idempotency Check
     const existingTransaction = await this.transactionsRepository.findOne({
       where: { idempotencyKey },
     });
     if (existingTransaction) {
-      // If a transaction with this key exists, return its saved response.
-      return existingTransaction.responseBody;
+      return existingTransaction.responseBody as TransactionResponse;
     }
 
     const { cardNumber, amount, txnAtUtc } = createTransactionDto;
@@ -54,15 +56,16 @@ export class TransactionsService {
       throw new NotFoundException('Card not found.');
     }
     if (card.status !== CardStatus.ACTIVE) {
-      // You can implement saving a rejected transaction here if needed.
       throw new UnprocessableEntityException('Card is not active.');
     }
 
     // Step 2: Begin Atomic Database Transaction
-    // The outer try...catch is removed. dataSource.transaction handles errors.
     return this.dataSource.transaction(async (manager) => {
       // Step 3: Calculate Timezone-aware Period Keys
-      const localTime = toZonedTime(new Date(txnAtUtc), card.organization.timezone);
+      const localTime = toZonedTime(
+        new Date(txnAtUtc),
+        card.organization.timezone,
+      );
       const dailyKey = format(localTime, 'yyyy-MM-dd');
       const monthlyKey = format(localTime, 'yyyy-MM');
 
@@ -73,13 +76,28 @@ export class TransactionsService {
       });
 
       if (!orgBalance) {
-        // This is a critical data integrity issue.
-        throw new InternalServerErrorException('Organization balance data is missing.');
+        throw new InternalServerErrorException(
+          'Organization balance data is missing.',
+        );
       }
 
-      const dailyCounter = await manager.findOne(LimitCounter, { where: { cardId: card.id, periodType: PeriodType.DAILY, periodKey: dailyKey }, lock: { mode: 'pessimistic_write' } });
-      const monthlyCounter = await manager.findOne(LimitCounter, { where: { cardId: card.id, periodType: PeriodType.MONTHLY, periodKey: monthlyKey }, lock: { mode: 'pessimistic_write' } });
-      
+      const dailyCounter = await manager.findOne(LimitCounter, {
+        where: {
+          cardId: card.id,
+          periodType: PeriodType.DAILY,
+          periodKey: dailyKey,
+        },
+        lock: { mode: 'pessimistic_write' },
+      });
+      const monthlyCounter = await manager.findOne(LimitCounter, {
+        where: {
+          cardId: card.id,
+          periodType: PeriodType.MONTHLY,
+          periodKey: monthlyKey,
+        },
+        lock: { mode: 'pessimistic_write' },
+      });
+
       // Step 5: Perform Business Rule Validations
       const dailyUsed = dailyCounter?.usedAmount ?? 0;
       const monthlyUsed = monthlyCounter?.usedAmount ?? 0;
@@ -92,7 +110,7 @@ export class TransactionsService {
       } else if (monthlyUsed + amount > card.monthlyLimit) {
         rejectionReason = RejectionReason.MONTHLY_LIMIT_EXCEEDED;
       }
-      
+
       // Step 6: If Validation Fails, Record and Throw
       if (rejectionReason) {
         const responseBody = {
@@ -114,20 +132,44 @@ export class TransactionsService {
       }
 
       // Step 7: If Validations Pass, Execute Updates
-      // 7a: Deduct balance
       orgBalance.balanceAmount = Number(orgBalance.balanceAmount) - amount;
       await manager.save(orgBalance);
-      
-      // 7b: Create ledger entry
-      const ledgerEntry = manager.create(BalanceLedger, { orgId: card.orgId, deltaAmount: -amount, balanceAfter: orgBalance.balanceAmount });
+
+      const ledgerEntry = manager.create(BalanceLedger, {
+        orgId: card.orgId,
+        deltaAmount: -amount,
+        balanceAfter: orgBalance.balanceAmount,
+      });
       await manager.save(ledgerEntry);
-      
-      // 7c: Upsert counters
-      await manager.upsert(LimitCounter, { cardId: card.id, orgId: card.orgId, periodType: PeriodType.DAILY, periodKey: dailyKey, usedAmount: dailyUsed + amount }, ['cardId', 'periodType', 'periodKey']);
-      await manager.upsert(LimitCounter, { cardId: card.id, orgId: card.orgId, periodType: PeriodType.MONTHLY, periodKey: monthlyKey, usedAmount: monthlyUsed + amount }, ['cardId', 'periodType', 'periodKey']);
-      
-      // 7d: Record approved transaction and its response for idempotency
-      const responseBody = { status: TransactionStatus.APPROVED, transactionId: '', balanceAfter: orgBalance.balanceAmount };
+
+      await manager.upsert(
+        LimitCounter,
+        {
+          cardId: card.id,
+          orgId: card.orgId,
+          periodType: PeriodType.DAILY,
+          periodKey: dailyKey,
+          usedAmount: dailyUsed + amount,
+        },
+        ['cardId', 'periodType', 'periodKey'],
+      );
+      await manager.upsert(
+        LimitCounter,
+        {
+          cardId: card.id,
+          orgId: card.orgId,
+          periodType: PeriodType.MONTHLY,
+          periodKey: monthlyKey,
+          usedAmount: monthlyUsed + amount,
+        },
+        ['cardId', 'periodType', 'periodKey'],
+      );
+
+      const responseBody: ApprovedTransactionResponse = {
+        status: TransactionStatus.APPROVED,
+        transactionId: '',
+        balanceAfter: orgBalance.balanceAmount,
+      };
       const approvedTx = manager.create(Transaction, {
         ...createTransactionDto,
         orgId: card.orgId,
@@ -139,14 +181,16 @@ export class TransactionsService {
       });
       const savedTransaction = await manager.save(approvedTx);
 
-      // 7e: Finalize links and response
       ledgerEntry.txnId = savedTransaction.id;
       await manager.save(ledgerEntry);
-      
-      savedTransaction.responseBody.transactionId = savedTransaction.id;
+
+      // Use type assertion for safe access
+      (
+        savedTransaction.responseBody as ApprovedTransactionResponse
+      ).transactionId = savedTransaction.id;
       await manager.save(savedTransaction);
-      
-      return savedTransaction.responseBody;
+
+      return savedTransaction.responseBody as ApprovedTransactionResponse;
     });
   }
 }

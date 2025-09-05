@@ -23,15 +23,22 @@ import { LimitCounter } from './transactions/entities/limit-counter.entity';
         username: configService.getOrThrow<string>('DB_USERNAME'),
         password: configService.getOrThrow<string>('DB_PASSWORD'),
         database: configService.getOrThrow<string>('DB_DATABASE'),
-        entities: [Card,Transaction,Organization,BalanceLedger,OrgBalance,LimitCounter],
-        synchronize: true, 
-
+        entities: [
+          Card,
+          Transaction,
+          Organization,
+          BalanceLedger,
+          OrgBalance,
+          LimitCounter,
+        ],
+        synchronize: true,
       }),
     }),
     TransactionsModule,
     OrganizationsModule,
-    CardsModule],
+    CardsModule,
+  ],
   controllers: [],
   providers: [],
 })
-export class AppModule { }
+export class AppModule {}

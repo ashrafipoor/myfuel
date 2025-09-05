@@ -6,13 +6,14 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
+import { RequestWithRawBody } from '../../main';
 
 @Injectable()
 export class SecurityGuard implements CanActivate {
   constructor(private readonly configService: ConfigService) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const request = context.switchToHttp().getRequest();
+    const request: RequestWithRawBody = context.switchToHttp().getRequest();
 
     // 1. Get headers from the request
     const signature = request.headers['x-signature'] as string;

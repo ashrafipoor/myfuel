@@ -6,7 +6,9 @@ import { OrgBalance } from './entities/org-balance.entity';
 import { BalanceLedger } from './entities/balance-ledger.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Organization, OrgBalance, BalanceLedger])],
+  imports: [
+    TypeOrmModule.forFeature([Organization, OrgBalance, BalanceLedger]),
+  ],
   controllers: [],
   providers: [OrganizationsService],
   exports: [TypeOrmModule],
